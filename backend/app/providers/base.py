@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Literal, Optional
 
@@ -100,6 +100,9 @@ class TransactionData:
     # Provider-side identifier of the bill this transaction belongs to.
     # Resolved to a credit_card_bills.id FK at sync time (issue #92).
     bill_external_id: Optional[str] = None
+    # Clock time from the provider, UTC, truncated to seconds. None when the
+    # source only has a calendar day.
+    occurred_at: Optional[datetime] = None
 
 
 @dataclass

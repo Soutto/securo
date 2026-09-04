@@ -9,6 +9,7 @@ from urllib.parse import parse_qs, urlparse
 import httpx
 
 from app.core.config import get_settings
+from app.core.provider_datetime import parse_provider_datetime
 from app.providers.base import (
     AccountData,
     BankProvider,
@@ -443,7 +444,10 @@ class PluggyProvider(BankProvider):
                     else:
                         txn_type = "credit" if amount_raw >= 0 else "debit"
 
-                    txn_date = date.fromisoformat(txn["date"][:10])
+                    calendar_day, occurred_at = parse_provider_datetime(txn.get("date"))
+                    if calendar_day is None:
+                        continue
+                    txn_date = calendar_day
 
                     # Pending vs booked status
                     status = "pending" if txn.get("status") == "PENDING" else "posted"
@@ -490,6 +494,7 @@ class PluggyProvider(BankProvider):
                             description=txn.get("description", ""),
                             amount=amount,
                             date=txn_date,
+                            occurred_at=occurred_at,
                             type=txn_type,
                             currency=txn.get("currencyCode"),
                             amount_in_account_currency=amount_in_account_currency,

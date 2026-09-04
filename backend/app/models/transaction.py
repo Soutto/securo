@@ -39,6 +39,11 @@ class Transaction(Base):
     amount: Mapped[Decimal] = mapped_column(Numeric(precision=15, scale=2))
     currency: Mapped[str] = mapped_column(String(3), default="USD")
     date: Mapped[_date] = mapped_column(Date)
+    # Instant the bank recorded, when the provider sends a clock time.
+    # Calendar `date` stays a day (bills, grouping). Seconds, no milliseconds.
+    occurred_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     # Effective date for cash-flow reporting. For regular accounts this equals
     # `date`. For credit card transactions it's the due date of the bill that
     # the transaction belongs to — so accrual-mode aggregations count the

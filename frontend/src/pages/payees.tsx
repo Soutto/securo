@@ -49,6 +49,7 @@ import { usePrivacyMode } from '@/hooks/use-privacy-mode'
 import { useAuth } from '@/contexts/auth-context'
 import { useWorkspace } from '@/contexts/workspace-context'
 import type { Payee } from '@/types'
+import { TransactionPostedAt } from '@/components/transaction-posted-at'
 import { formatCurrency } from '@/lib/format'
 import { payeeErrorMessage } from '@/lib/payee-error-message'
 import {
@@ -653,7 +654,7 @@ export default function PayeesPage() {
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-foreground truncate">{tx.description}</p>
                           <p className="text-xs text-muted-foreground">
-                            {new Date(tx.date + 'T00:00:00').toLocaleDateString(dateLocale)}
+                            <TransactionPostedAt date={tx.date} occurredAt={tx.occurred_at} locale={dateLocale} />
                             {tx.category?.name && <> · {tx.category.name}</>}
                           </p>
                         </div>

@@ -488,12 +488,21 @@ async def get_transactions(
     chosen_col = sort_columns.get(sort_by) if sort_by else None
     if chosen_col is None:
         # Default: by date desc, with created_at as tiebreaker.
-        query = base_query.order_by(default_order_col.desc(), Transaction.created_at.desc())
+        query = base_query.order_by(
+            default_order_col.desc(),
+            Transaction.occurred_at.desc().nulls_last(),
+            Transaction.created_at.desc(),
+        )
     else:
         direction = (chosen_col.asc() if sort_dir == "asc" else chosen_col.desc())
-        # Always tie-break on date desc + created_at desc so equal values
-        # stay in a sensible order (e.g. multiple txs with the same amount).
-        query = base_query.order_by(direction, default_order_col.desc(), Transaction.created_at.desc())
+        # Always tie-break on date desc + occurred_at + created_at so equal
+        # values stay in a sensible order (e.g. multiple txs with the same amount).
+        query = base_query.order_by(
+            direction,
+            default_order_col.desc(),
+            Transaction.occurred_at.desc().nulls_last(),
+            Transaction.created_at.desc(),
+        )
     if not skip_pagination:
         query = query.offset((page - 1) * limit).limit(limit)
 

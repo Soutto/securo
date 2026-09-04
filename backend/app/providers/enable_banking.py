@@ -24,6 +24,7 @@ from jose import jwt
 
 from app.agents.services.crypto import decrypt, encrypt
 from app.core.config import get_settings
+from app.core.provider_datetime import parse_provider_datetime
 from app.providers.base import (
     AccountData,
     BankProvider,
@@ -613,9 +614,9 @@ class EnableBankingProvider(BankProvider):
         txn_type = "debit" if indicator == "DBIT" else "credit"
         amount = amount.copy_abs()
         currency = amount_obj.get("currency") or "EUR"
-        booking = _parse_iso_date(raw.get("booking_date"))
-        value = _parse_iso_date(raw.get("value_date"))
-        txn_date = booking or value
+        booking_day, booking_at = parse_provider_datetime(raw.get("booking_date"))
+        value_day, value_at = parse_provider_datetime(raw.get("value_date"))
+        txn_date = booking_day or value_day
         if not txn_date:
             return None
         description = _join_remittance(raw.get("remittance_information")) or (
@@ -630,6 +631,7 @@ class EnableBankingProvider(BankProvider):
             description=description,
             amount=amount,
             date=txn_date,
+            occurred_at=booking_at or value_at,
             type=txn_type,
             currency=currency,
             status=status,

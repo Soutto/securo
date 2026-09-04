@@ -60,6 +60,7 @@ import { MobileTransactionRow } from '@/components/mobile-transaction-row'
 import { useAuth } from '@/contexts/auth-context'
 import { useWorkspace } from '@/contexts/workspace-context'
 import { useCollectionFilter } from '@/contexts/collection-filter-context'
+import { TransactionPostedAt } from '@/components/transaction-posted-at'
 import { formatCurrency } from '@/lib/format'
 import { shouldShowPendingBadge } from '@/lib/transaction-status'
 
@@ -1190,7 +1191,9 @@ export default function TransactionsPage() {
             )}
           </div>
           {showInlineDate && (
-            <p className="text-xs text-muted-foreground mt-0.5">{new Date(tx.date + 'T00:00:00').toLocaleDateString(dateLocale)}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              <TransactionPostedAt date={tx.date} occurredAt={tx.occurred_at} locale={dateLocale} />
+            </p>
           )}
           {(showInlineNotes || showInlineTags) && tx.notes && (
             <div className="mt-1 space-y-0.5">
@@ -1224,13 +1227,13 @@ export default function TransactionsPage() {
     switch (col.id) {
       case 'date':
         return (
-          <TableCell key={col.id} style={widthStyle} className={`${baseClass} text-sm text-muted-foreground tabular-nums`}>
-            {new Date(tx.date + 'T00:00:00').toLocaleDateString(dateLocale)}
+          <TableCell key={col.id} style={widthStyle} className={`${baseClass} pr-3 overflow-hidden text-sm text-muted-foreground`}>
+            <TransactionPostedAt date={tx.date} occurredAt={tx.occurred_at} locale={dateLocale} stacked />
           </TableCell>
         )
       case 'description':
         return (
-          <TableCell key={col.id} style={widthStyle} className={`${baseClass} pl-2 max-w-0`}>
+          <TableCell key={col.id} style={widthStyle} className={`${baseClass} pl-3 max-w-0`}>
             {renderDescriptionCell(tx)}
           </TableCell>
         )

@@ -244,6 +244,8 @@ export interface Transaction {
   amount: number
   currency: string
   date: string
+  /** ISO instant from the bank, seconds precision. Null when only a calendar day exists. */
+  occurred_at: string | null
   type: 'debit' | 'credit'
   source: string
   status: 'posted' | 'pending'

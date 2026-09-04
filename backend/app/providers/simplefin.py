@@ -79,16 +79,21 @@ def _decode_setup_token(raw: str) -> str:
     return decoded
 
 
-def _epoch_to_date(value: Any) -> Optional[date]:
+def _epoch_to_datetime(value: Any) -> Optional[datetime]:
     if value is None or value == "":
         return None
     try:
         seconds = int(value)
         if seconds <= 0:
             return None
-        return datetime.fromtimestamp(seconds, tz=timezone.utc).date()
+        return datetime.fromtimestamp(seconds, tz=timezone.utc).replace(microsecond=0)
     except (ValueError, TypeError, OSError):
         return None
+
+
+def _epoch_to_date(value: Any) -> Optional[date]:
+    instant = _epoch_to_datetime(value)
+    return instant.date() if instant is not None else None
 
 
 def _accounts_url_and_auth(access_url: str) -> tuple[str, Optional[tuple[str, str]]]:
@@ -495,6 +500,9 @@ class SimpleFinProvider(BankProvider):
         txn_date = posted or transacted
         if not txn_date:
             return None
+        occurred_at = _epoch_to_datetime(raw.get("transacted_at")) or _epoch_to_datetime(
+            raw.get("posted")
+        )
         description = (
             raw.get("description")
             or raw.get("payee")
@@ -512,6 +520,7 @@ class SimpleFinProvider(BankProvider):
             description=description,
             amount=amount,
             date=txn_date,
+            occurred_at=occurred_at,
             type=txn_type,
             # None (not a fallback) when the connector sends something that
             # isn't an ISO code: the sync layer already resolves a null

@@ -31,6 +31,7 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import { useAuth } from '@/contexts/auth-context'
 import { useWorkspace } from '@/contexts/workspace-context'
 import { resolveDateFnsLocale } from '@/lib/date-fns-locale'
+import { TransactionPostedAt } from '@/components/transaction-posted-at'
 import { formatCurrency } from '@/lib/format'
 import {
   AreaChart,
@@ -664,6 +665,7 @@ export default function AccountDetailPage() {
       amount: p.amount,
       currency: p.currency,
       date: p.date,
+      occurred_at: null,
       type: p.type,
       source: 'projected',
       status: 'posted',
@@ -1604,8 +1606,8 @@ export default function AccountDetailPage() {
                           }
                         }}
                       >
-                        <td className="px-3 sm:px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-                          {formatDateStr(tx.date, dateLocale)}
+                        <td className="px-3 sm:px-4 py-3 text-xs text-muted-foreground whitespace-nowrap align-middle">
+                          <TransactionPostedAt date={tx.date} occurredAt={tx.occurred_at} locale={dateLocale} stacked />
                         </td>
                         <td className="px-3 sm:px-4 py-3 w-full max-w-0">
                           <div className="flex items-center gap-1.5 min-w-0">

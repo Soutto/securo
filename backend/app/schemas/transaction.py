@@ -1,5 +1,5 @@
 import uuid
-from datetime import date as _Date
+from datetime import date as _Date, datetime
 from decimal import Decimal
 from typing import Literal, Optional
 
@@ -169,6 +169,7 @@ class TransactionRead(TransactionBase):
     currency: str = "USD"
     source: str
     status: str = "posted"
+    occurred_at: Optional[datetime] = None
     payee: Optional[str] = None
     original_description: Optional[str] = None
     payee_id: Optional[uuid.UUID] = None

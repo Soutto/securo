@@ -51,6 +51,7 @@ import { CategoryIcon } from '@/components/category-icon'
 import { DatePickerInput } from '@/components/ui/date-picker-input'
 import { PageHeader } from '@/components/page-header'
 import type { GroupMember, GroupSettlement, Transaction } from '@/types'
+import { TransactionPostedAt } from '@/components/transaction-posted-at'
 import { formatCurrency } from '@/lib/format'
 
 function SectionCard({ children }: { children: React.ReactNode }) {
@@ -869,7 +870,7 @@ export default function GroupDetailPage() {
                     {tx.description}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {new Date(tx.date + 'T00:00:00').toLocaleDateString(dateLocale)}
+                    <TransactionPostedAt date={tx.date} occurredAt={tx.occurred_at} locale={dateLocale} />
                     {tx.category?.name ? ` · ${tx.category.name}` : ''}
                     {tx.splits && tx.splits.length > 0
                       ? ` · ${t('splitGroups.splitWays', { count: tx.splits.length })}`

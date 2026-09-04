@@ -229,6 +229,44 @@ export function parseAmountInput(value: string, locale = 'en-US'): number | null
   return Number.isFinite(parsed) ? sign * parsed : null
 }
 
+/** Calendar day from the ledger; clock from the bank, local TZ, no milliseconds. */
+export function transactionPostedAtParts(
+  date: string,
+  occurredAt: string | null | undefined,
+  locale = 'en-US',
+): { dateLabel: string; timeLabel: string | null } {
+  const dateLabel = new Date(date + 'T00:00:00').toLocaleDateString(locale, {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+  if (!occurredAt) return { dateLabel, timeLabel: null }
+  const instant = new Date(occurredAt)
+  if (Number.isNaN(instant.getTime())) return { dateLabel, timeLabel: null }
+  return {
+    dateLabel,
+    timeLabel: instant.toLocaleTimeString(locale, {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    }),
+  }
+}
+
+/**
+ * Ledger day plus Open Finance clock when the bank sent one.
+ * Compact one-liner for lists; tables stack the parts instead.
+ */
+export function formatTransactionPostedAt(
+  date: string,
+  occurredAt: string | null | undefined,
+  locale = 'en-US',
+): string {
+  const { dateLabel, timeLabel } = transactionPostedAtParts(date, occurredAt, locale)
+  return timeLabel ? `${dateLabel} ${timeLabel}` : dateLabel
+}
+
 /**
  * Render a number into an amount input using the display locale's decimal
  * separator. No grouping: a group separator inside an editable field would

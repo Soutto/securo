@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.config import get_settings
+from app.core.provider_datetime import truncate_to_seconds
 from app.models.asset import Asset
 from app.models.asset_group import AssetGroup
 from app.models.asset_value import AssetValue
@@ -33,6 +34,7 @@ from app.providers.base import (
     ProviderRateLimited,
     ProviderUserActionRequired,
     SessionExpiredError,
+    TransactionData,
 )
 from app.services import oauth_state
 from app.services import admin_service
@@ -76,6 +78,12 @@ def _clean_logo_url(value: object) -> Optional[str]:
 def _clean_institution_name(value: object) -> Optional[str]:
     """Same guard as _clean_logo_url, for the 255-char institution columns."""
     return value[:255] if isinstance(value, str) and value.strip() else None
+
+
+def _apply_occurred_at(tx: Transaction, txn_data: TransactionData) -> None:
+    """Copy the provider instant onto the row when the source has a clock time."""
+    if txn_data.occurred_at is not None:
+        tx.occurred_at = truncate_to_seconds(txn_data.occurred_at)
 
 
 def _wallet_external_id(connection_external_id: str, account_key: Optional[str]) -> str:
@@ -1102,6 +1110,7 @@ async def handle_oauth_callback(
             # second copy from landing.
             synced_dup = await _find_synced_duplicate(session, account.id, txn_data)
             if synced_dup:
+                _apply_occurred_at(synced_dup, txn_data)
                 if synced_dup.original_description is None:
                     synced_dup.original_description = txn_data.description
                 if synced_dup.status == "pending" and txn_data.status == "posted":
@@ -1146,6 +1155,11 @@ async def handle_oauth_callback(
                 amount=txn_data.amount,
                 currency=txn_data.currency or acc_data.currency or user_currency,
                 date=txn_data.date,
+                occurred_at=(
+                    truncate_to_seconds(txn_data.occurred_at)
+                    if txn_data.occurred_at is not None
+                    else None
+                ),
                 type=txn_data.type,
                 source="sync",
                 status=txn_data.status,
@@ -1867,6 +1881,7 @@ async def sync_connection(
                         continue
                     if existing_tx.original_description is None:
                         existing_tx.original_description = txn_data.description
+                    _apply_occurred_at(existing_tx, txn_data)
                     if existing_tx.status == "pending" and txn_data.status == "posted":
                         existing_tx.status = "posted"
                     # Self-heal bill linkage: a tx that pre-dates the bills
@@ -1899,6 +1914,7 @@ async def sync_connection(
                     fuzzy_match.external_id = txn_data.external_id
                     fuzzy_match.source = "sync"
                     fuzzy_match.raw_data = txn_data.raw_data
+                    _apply_occurred_at(fuzzy_match, txn_data)
                     if fuzzy_match.original_description is None:
                         fuzzy_match.original_description = txn_data.description
                     if not fuzzy_match.payee and txn_data.payee:
@@ -1915,6 +1931,7 @@ async def sync_connection(
                     session, account.id, txn_data
                 )
                 if synced_dup:
+                    _apply_occurred_at(synced_dup, txn_data)
                     if synced_dup.original_description is None:
                         synced_dup.original_description = txn_data.description
                     if synced_dup.status == "pending" and txn_data.status == "posted":
@@ -1970,6 +1987,11 @@ async def sync_connection(
                     amount=txn_data.amount,
                     currency=incoming_currency,
                     date=txn_data.date,
+                    occurred_at=(
+                        truncate_to_seconds(txn_data.occurred_at)
+                        if txn_data.occurred_at is not None
+                        else None
+                    ),
                     type=txn_data.type,
                     source="sync",
                     status=txn_data.status,

@@ -3,10 +3,12 @@ import { describe, expect, it } from 'vitest'
 import {
   formatAmountInput,
   formatCurrency,
+  formatTransactionPostedAt,
   parseAmountInput,
   resolveDateLocale,
   resolveDateOrder,
   resolveDisplayLocale,
+  transactionPostedAtParts,
 } from '@/lib/format'
 
 /**
@@ -225,5 +227,35 @@ describe('formatAmountInput', () => {
 
   it('falls back to a dot format on a malformed locale', () => {
     expect(formatAmountInput(1.5, 'not a locale')).toBe('1.50')
+  })
+})
+
+describe('formatTransactionPostedAt', () => {
+  it('keeps the ledger day and puts the clock on the same line without milliseconds', () => {
+    const { dateLabel, timeLabel } = transactionPostedAtParts(
+      '2026-09-04',
+      '2026-09-04T13:14:07.693Z',
+      'pt-BR',
+    )
+    expect(dateLabel).toMatch(/04/)
+    expect(dateLabel).toMatch(/09/)
+    expect(dateLabel).toMatch(/2026/)
+    expect(timeLabel).toMatch(/\d{2}:\d{2}:\d{2}/)
+    expect(timeLabel).not.toMatch(/\.\d{3}/)
+
+    const formatted = formatTransactionPostedAt(
+      '2026-09-04',
+      '2026-09-04T13:14:07.693Z',
+      'pt-BR',
+    )
+    expect(formatted).toBe(`${dateLabel} ${timeLabel}`)
+    expect(formatted).not.toMatch(/,/)
+  })
+
+  it('falls back to the calendar day when there is no instant', () => {
+    const formatted = formatTransactionPostedAt('2026-09-04', null, 'en-CA')
+    expect(formatted).toMatch(/2026/)
+    expect(formatted).not.toMatch(/\d{2}:\d{2}:\d{2}/)
+    expect(transactionPostedAtParts('2026-09-04', null, 'en-CA').timeLabel).toBeNull()
   })
 })
