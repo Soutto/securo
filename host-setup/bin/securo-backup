@@ -1,0 +1,113 @@
+#!/usr/bin/env bash
+# Daily encrypted backup of local Securo to Proton Drive (GPG + rclone).
+# Never syncs live Docker volumes.
+set -euo pipefail
+
+export PATH="$HOME/.local/bin:/usr/bin:/bin:${PATH:-}"
+SECURO_DIR="${SECURO_DIR:-$HOME/Projects/securo}"
+COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
+STAGING="${STAGING:-$HOME/.local/share/securo-backups}"
+PASSPHRASE_FILE="${PASSPHRASE_FILE:-$HOME/.config/securo/backup-passphrase}"
+RCLONE="${RCLONE:-$HOME/.local/bin/rclone}"
+RCLONE_REMOTE="${RCLONE_REMOTE:-proton:Backup/securo}"
+KEEP_LOCAL="${KEEP_LOCAL:-3}"
+KEEP_REMOTE_DAYS="${KEEP_REMOTE_DAYS:-14}"
+LOG_FILE="${LOG_FILE:-$STAGING/backup.log}"
+OPS_OK=0
+OPS_DETAIL=""
+
+mkdir -p "$STAGING"
+exec >>"$LOG_FILE" 2>&1
+echo "===== $(date -Iseconds) start ====="
+
+finish() {
+  local rc=$?
+  rm -rf "${WORK:-}"
+  if [[ $OPS_OK -eq 1 ]]; then
+    "$HOME/.local/bin/securo-ops-log" backup success "${OPS_DETAIL:-Backup enviado ao Proton}"
+  else
+    "$HOME/.local/bin/securo-ops-log" backup failure "${OPS_DETAIL:-Backup falhou (exit $rc)}"
+  fi
+}
+trap finish EXIT
+
+if [[ ! -f "$PASSPHRASE_FILE" ]]; then
+  echo "Missing passphrase file: $PASSPHRASE_FILE"
+  exit 1
+fi
+if [[ ! -f "$SECURO_DIR/.env" ]]; then
+  echo "Missing $SECURO_DIR/.env"
+  exit 1
+fi
+if ! docker info >/dev/null 2>&1; then
+  echo "Docker is not running"
+  exit 1
+fi
+
+DATE="$(date +%Y%m%d-%H%M%S)"
+WORK="$(mktemp -d "$STAGING/work.XXXXXX")"
+ARCHIVE="$STAGING/securo-$DATE.tar.gz.gpg"
+
+cd "$SECURO_DIR"
+COMPOSE=(docker compose -f "$COMPOSE_FILE")
+[[ -f docker-compose.lucas.yml ]] && COMPOSE+=(-f docker-compose.lucas.yml)
+
+if ! "${COMPOSE[@]}" ps --status running --services 2>/dev/null | grep -qx db; then
+  echo "Securo db container is not running; skip backup"
+  exit 1
+fi
+
+echo "Dumping database..."
+"${COMPOSE[@]}" exec -T db pg_dump -U postgres --clean --if-exists securo >"$WORK/securo.sql"
+
+archive_volume() {
+  local volume="$1"
+  local outfile="$2"
+  if docker volume inspect "$volume" >/dev/null 2>&1; then
+    echo "Archiving volume $volume..."
+    docker run --rm \
+      -v "$volume":/data:ro \
+      -v "$WORK":/backup \
+      alpine:3.20 \
+      tar czf "/backup/$outfile" -C /data .
+  else
+    echo "Volume $volume not found, skipping"
+  fi
+}
+
+archive_volume securo_attachments attachments.tar.gz
+archive_volume securo_agent_knowledge agent_knowledge.tar.gz
+
+cp "$SECURO_DIR/.env" "$WORK/env"
+printf '%s\n' "$DATE" "$(hostname)" >"$WORK/manifest.txt"
+
+echo "Encrypting archive..."
+tar czf - -C "$WORK" . | gpg --batch --yes --pinentry-mode loopback \
+  --passphrase-file "$PASSPHRASE_FILE" \
+  --symmetric --cipher-algo AES256 \
+  --compress-algo none \
+  -o "$ARCHIVE"
+
+chmod 600 "$ARCHIVE"
+echo "Checking Proton Drive..."
+if ! "$RCLONE" lsd proton: >/dev/null 2>&1; then
+  echo "Proton Drive is not logged in. Run: securo-proton-login"
+  exit 1
+fi
+"$RCLONE" mkdir "$RCLONE_REMOTE" 2>/dev/null || true
+echo "Uploading to $RCLONE_REMOTE ..."
+"$RCLONE" copy "$ARCHIVE" "$RCLONE_REMOTE" --retries 5 --low-level-retries 10
+
+echo "Pruning local archives (keep $KEEP_LOCAL)..."
+mapfile -t local_files < <(ls -1t "$STAGING"/securo-*.tar.gz.gpg 2>/dev/null || true)
+if ((${#local_files[@]} > KEEP_LOCAL)); then
+  rm -f -- "${local_files[@]:KEEP_LOCAL}"
+fi
+
+echo "Pruning remote archives older than $KEEP_REMOTE_DAYS days..."
+"$RCLONE" delete "$RCLONE_REMOTE" --min-age "${KEEP_REMOTE_DAYS}d" --include "securo-*.tar.gz.gpg" || true
+
+echo "Done: $(basename "$ARCHIVE") ($(du -h "$ARCHIVE" | awk '{print $1}'))"
+echo "===== $(date -Iseconds) ok ====="
+OPS_DETAIL="Backup $(basename "$ARCHIVE") enviado ao Proton"
+OPS_OK=1

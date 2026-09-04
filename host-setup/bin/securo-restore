@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+# Restore a Securo backup created by securo-backup.
+# Usage:
+#   securo-restore
+#   securo-restore /path/to/file.tar.gz.gpg
+#   securo-restore --from-drive
+set -euo pipefail
+
+export PATH="$HOME/.local/bin:/usr/bin:/bin:${PATH:-}"
+SECURO_DIR="${SECURO_DIR:-$HOME/Projects/securo}"
+COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
+STAGING="${STAGING:-$HOME/.local/share/securo-backups}"
+PASSPHRASE_FILE="${PASSPHRASE_FILE:-$HOME/.config/securo/backup-passphrase}"
+RCLONE="${RCLONE:-$HOME/.local/bin/rclone}"
+RCLONE_REMOTE="${RCLONE_REMOTE:-proton:Backup/securo}"
+
+ARCHIVE="${1:-}"
+if [[ "${ARCHIVE}" == "--from-drive" ]]; then
+  mkdir -p "$STAGING"
+  echo "Fetching latest backup from Proton Drive..."
+  latest="$("$RCLONE" lsf "$RCLONE_REMOTE" --files-only --include 'securo-*.tar.gz.gpg' | sort | tail -n1)"
+  if [[ -z "$latest" ]]; then
+    echo "No backups found at $RCLONE_REMOTE"
+    exit 1
+  fi
+  "$RCLONE" copy "$RCLONE_REMOTE/$latest" "$STAGING"
+  ARCHIVE="$STAGING/$latest"
+elif [[ -z "$ARCHIVE" ]]; then
+  ARCHIVE="$(ls -1t "$STAGING"/securo-*.tar.gz.gpg 2>/dev/null | head -n1 || true)"
+fi
+
+if [[ -z "${ARCHIVE}" || ! -f "$ARCHIVE" ]]; then
+  echo "No backup archive found. Pass a file or use --from-drive."
+  exit 1
+fi
+if [[ ! -f "$PASSPHRASE_FILE" ]]; then
+  echo "Missing passphrase file: $PASSPHRASE_FILE"
+  echo "Restore it from Proton Pass before continuing."
+  exit 1
+fi
+
+echo "This will REPLACE the current Securo database and attachments with:"
+echo "  $ARCHIVE"
+read -r -p "Type RESTORE to continue: " confirm
+[[ "$confirm" == "RESTORE" ]] || { echo "Aborted"; exit 1; }
+
+WORK="$(mktemp -d)"
+trap 'rm -rf "$WORK"' EXIT
+
+echo "Decrypting..."
+gpg --batch --yes --pinentry-mode loopback \
+  --passphrase-file "$PASSPHRASE_FILE" \
+  -d "$ARCHIVE" | tar xz -C "$WORK"
+
+cd "$SECURO_DIR"
+COMPOSE=(docker compose -f "$COMPOSE_FILE")
+[[ -f docker-compose.lucas.yml ]] && COMPOSE+=(-f docker-compose.lucas.yml)
+
+if [[ -f "$WORK/env" ]]; then
+  umask 077
+  cp "$WORK/env" "$SECURO_DIR/.env"
+  chmod 600 "$SECURO_DIR/.env"
+  echo "Restored .env"
+fi
+
+mkdir -p "$SECURO_DIR/secrets"
+"${COMPOSE[@]}" up -d
+echo "Waiting for database..."
+for _ in $(seq 1 60); do
+  if "${COMPOSE[@]}" exec -T db pg_isready -U postgres >/dev/null 2>&1; then
+    break
+  fi
+  sleep 2
+done
+
+if [[ -f "$WORK/securo.sql" ]]; then
+  echo "Restoring database..."
+  "${COMPOSE[@]}" exec -T db psql -U postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='securo' AND pid <> pg_backend_pid();" >/dev/null
+  "${COMPOSE[@]}" exec -T db psql -U postgres -c "DROP DATABASE IF EXISTS securo;"
+  "${COMPOSE[@]}" exec -T db psql -U postgres -c "CREATE DATABASE securo;"
+  "${COMPOSE[@]}" exec -T db psql -U postgres securo <"$WORK/securo.sql"
+fi
+
+restore_volume() {
+  local volume="$1"
+  local archive="$2"
+  [[ -f "$archive" ]] || return 0
+  echo "Restoring volume $volume..."
+  docker volume create "$volume" >/dev/null
+  docker run --rm \
+    -v "$volume":/data \
+    -v "$WORK":/backup:ro \
+    alpine:3.20 \
+    sh -c "rm -rf /data/* /data/.[!.]* 2>/dev/null; tar xzf /backup/$(basename "$archive") -C /data"
+}
+
+restore_volume securo_attachments "$WORK/attachments.tar.gz"
+restore_volume securo_agent_knowledge "$WORK/agent_knowledge.tar.gz"
+
+"${COMPOSE[@]}" up -d --force-recreate backend celery-worker celery-beat frontend
+echo "Restore finished. Open http://localhost:3000"

@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# Interactive Proton Drive login for the Securo backup remote.
+set -euo pipefail
+export PATH="$HOME/.local/bin:/usr/bin:/bin:${PATH:-}"
+RCLONE="${RCLONE:-$HOME/.local/bin/rclone}"
+
+EMAIL="$("$RCLONE" config dump 2>/dev/null | python3 -c "import sys,json
+try:
+    cfg=json.load(sys.stdin)
+    print(cfg.get('proton',{}).get('username',''))
+except Exception:
+    print('')" || true)"
+
+echo "Login do Proton Drive (rclone remote: proton)"
+[[ -n "$EMAIL" ]] && echo "E-mail: $EMAIL"
+echo
+
+if [[ ! -t 0 ]]; then
+  echo "Rode este comando num terminal interativo."
+  exit 1
+fi
+
+if [[ -z "$EMAIL" ]]; then
+  printf "E-mail da conta Proton: "
+  read -r EMAIL
+  "$RCLONE" config create proton protondrive username "$EMAIL" --non-interactive >/dev/null
+fi
+
+printf "Senha da conta Proton: "
+read -rs PASS
+echo
+if [[ -z "$PASS" ]]; then
+  echo "Senha vazia. Abortado."
+  exit 1
+fi
+
+printf "Código 2FA (6 dígitos; Enter se a conta não tiver): "
+read -r OTP
+echo
+
+echo "Gravando senha no rclone (ofuscada)..."
+"$RCLONE" config update proton password "$PASS" --obscure --non-interactive >/dev/null
+unset PASS
+
+"$RCLONE" config update proton 2fa "" --non-interactive >/dev/null 2>&1 || true
+
+echo "Testando acesso..."
+RCLONE_ARGS=(mkdir proton:Backup/securo)
+if [[ -n "${OTP}" ]]; then
+  RCLONE_ARGS+=(--protondrive-2fa="$OTP")
+fi
+
+if ! "$RCLONE" "${RCLONE_ARGS[@]}"; then
+  echo
+  echo "Falhou. Confira senha e 2FA (o código dura ~30 segundos)."
+  exit 1
+fi
+
+"$RCLONE" lsd proton:Backup
+echo
+echo "Ok. Próximo backup sobe para proton:Backup/securo"

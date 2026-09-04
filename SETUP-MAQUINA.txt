@@ -1,0 +1,14 @@
+Configure esta máquina para o Securo (self-host local + backup no Proton Drive).
+
+Leia e siga a skill do projeto:
+  .cursor/skills/securo-machine-setup/SKILL.md
+
+Eu faço os logins quando você pedir. As senhas estão no Proton Pass:
+  - conta GitHub Soutto (gh auth login)
+  - conta Proton (Drive + 2FA) para o rclone
+  - senha GPG do backup
+  - senha do app Securo em http://localhost:3000
+
+Não grave senhas, .env nem a passphrase em arquivo do git. O fork é público.
+
+No fim, abra docs/mapa.html para eu conferir o desenho da casa.

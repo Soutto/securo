@@ -1,0 +1,11 @@
+[Unit]
+Description=Backup Securo to Proton Drive and update from upstream
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+Environment=PATH=%h/.local/bin:/usr/bin:/bin
+Environment=GIT_TERMINAL_PROMPT=0
+ExecStart=%h/.local/bin/securo-update
+Nice=10
+IOSchedulingClass=idle

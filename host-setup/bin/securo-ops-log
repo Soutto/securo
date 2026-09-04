@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# Record a backup/update result in Securo Postgres (ops_logs).
+# Usage: securo-ops-log backup|update success|failure "message"
+set -u
+export PATH="$HOME/.local/bin:/usr/bin:/bin:${PATH:-}"
+
+SECURO_DIR="${SECURO_DIR:-$HOME/Projects/securo}"
+KIND="${1:-}"
+STATUS="${2:-}"
+MESSAGE="${3:-}"
+
+if [[ "$KIND" != "backup" && "$KIND" != "update" ]]; then
+  echo "securo-ops-log: kind must be backup or update" >&2
+  exit 0
+fi
+if [[ "$STATUS" != "success" && "$STATUS" != "failure" ]]; then
+  echo "securo-ops-log: status must be success or failure" >&2
+  exit 0
+fi
+
+SUCCESS=true
+[[ "$STATUS" == "failure" ]] && SUCCESS=false
+
+cd "$SECURO_DIR" || exit 0
+COMPOSE=(docker compose -f docker-compose.prod.yml)
+[[ -f docker-compose.lucas.yml ]] && COMPOSE+=(-f docker-compose.lucas.yml)
+
+if ! "${COMPOSE[@]}" ps --status running --services 2>/dev/null | grep -qx db; then
+  echo "securo-ops-log: db is not running, skip" >&2
+  exit 0
+fi
+
+export OPS_KIND="$KIND" OPS_SUCCESS="$SUCCESS" OPS_MESSAGE="$MESSAGE"
+python3 - <<'PY' | "${COMPOSE[@]}" exec -T db psql -U postgres -d securo -v ON_ERROR_STOP=1 -f - >/dev/null || true
+import os, uuid
+
+def sql_str(value: str) -> str:
+    return "'" + value.replace("'", "''")[:2000] + "'"
+
+kind = os.environ["OPS_KIND"]
+success = os.environ["OPS_SUCCESS"]
+message = os.environ.get("OPS_MESSAGE") or ""
+print(
+    "INSERT INTO ops_logs (id, kind, success, message, created_at) VALUES ("
+    f"'{uuid.uuid4()}', {sql_str(kind)}, {success}, "
+    f"{sql_str(message) if message else 'NULL'}, NOW()"
+    ");"
+)
+PY
+exit 0

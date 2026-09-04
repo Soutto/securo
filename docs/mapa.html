@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Caderneta do Securo — o que lembrar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #152318;
+      --paper: #e8f0ea;
+      --card: #f4faf6;
+      --leaf: #2f6f5e;
+      --stamp: #c44536;
+      --gold: #c4a35a;
+      --mute: #4a6356;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "IBM Plex Sans", sans-serif;
+      line-height: 1.45;
+    }
+    .sheet {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 2.2rem 1.4rem 4rem;
+    }
+    header.passbook {
+      margin-bottom: 1.4rem;
+      padding-bottom: 1rem;
+      border-bottom: 3px solid var(--ink);
+    }
+    .eyebrow {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--leaf);
+      margin: 0 0 0.4rem;
+    }
+    h1 {
+      font-family: "Fraunces", serif;
+      font-size: clamp(1.85rem, 4.2vw, 2.7rem);
+      font-weight: 700;
+      line-height: 0.95;
+      margin: 0;
+      max-width: 14ch;
+    }
+    .lede {
+      max-width: 38rem;
+      margin: 0.7rem 0 0;
+      color: var(--mute);
+    }
+    .clock-stamp {
+      position: absolute;
+      right: 0.85rem;
+      top: 50%;
+      width: 132px;
+      height: 132px;
+      border: 6px solid var(--stamp);
+      border-radius: 50%;
+      color: var(--stamp);
+      display: grid;
+      place-items: center;
+      text-align: center;
+      transform: translateY(-50%) rotate(-11deg);
+      box-shadow: inset 0 0 0 3px var(--stamp);
+      background: color-mix(in srgb, var(--card) 72%, white);
+      z-index: 2;
+      pointer-events: none;
+    }
+    .clock-stamp strong {
+      font-family: "Fraunces", serif;
+      font-size: 1.85rem;
+      display: block;
+      line-height: 1;
+    }
+    .clock-stamp span {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.62rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .house {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto auto auto;
+      border: 4px solid var(--ink);
+      background: var(--card);
+    }
+    .room {
+      padding: 1.15rem 1.2rem 1.3rem;
+      min-height: 11.5rem;
+    }
+    .room h2 {
+      font-family: "Fraunces", serif;
+      font-size: 1.55rem;
+      margin: 0 0 0.15rem;
+    }
+    .room .where {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.78rem;
+      color: var(--leaf);
+      margin-bottom: 0.55rem;
+    }
+    .room p, .room li { margin: 0.28rem 0; font-size: 0.95rem; }
+    .room ul { padding-left: 1.1rem; margin: 0.2rem 0 0; }
+    .rua { border-right: 3px solid var(--ink); border-bottom: 3px solid var(--ink); }
+    .oficina { border-bottom: 3px solid var(--ink); }
+    .mesa { border-right: 3px solid var(--ink); }
+    .corredor {
+      position: relative;
+      grid-column: 1 / -1;
+      background: var(--ink);
+      color: var(--paper);
+      padding: 1rem 10.5rem 1.15rem 1.2rem;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 1rem;
+      align-items: center;
+      min-height: 7.4rem;
+    }
+    .corredor ol {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.6rem;
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .corredor li {
+      border-top: 2px solid var(--gold);
+      padding-top: 0.4rem;
+      font-size: 0.88rem;
+    }
+    .corredor .when {
+      font-family: "Fraunces", serif;
+      font-size: 1.35rem;
+      color: var(--gold);
+      line-height: 1.1;
+      min-width: 7.5rem;
+    }
+    .never {
+      margin: 1.4rem 0;
+      background: var(--stamp);
+      color: #fff7f4;
+      padding: 1rem 1.15rem;
+    }
+    .never h2 {
+      font-family: "Fraunces", serif;
+      margin: 0 0 0.45rem;
+      font-size: 1.3rem;
+    }
+    .never ul { margin: 0; padding-left: 1.15rem; }
+    .row {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 1rem;
+    }
+    .panel {
+      border: 3px solid var(--ink);
+      background: var(--card);
+      padding: 1.1rem 1.15rem;
+    }
+    .panel h2 {
+      font-family: "Fraunces", serif;
+      font-size: 1.4rem;
+      margin: 0 0 0.55rem;
+    }
+    code, .path {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.82rem;
+    }
+    .keys {
+      display: grid;
+      gap: 0.45rem;
+    }
+    .key {
+      display: grid;
+      grid-template-columns: 8.2rem 1fr;
+      gap: 0.6rem;
+      padding: 0.45rem 0;
+      border-bottom: 1px dashed color-mix(in srgb, var(--ink) 28%, transparent);
+    }
+    .key b { font-family: "IBM Plex Mono", monospace; font-size: 0.78rem; color: var(--leaf); }
+    .cmds {
+      margin-top: 1rem;
+      display: grid;
+      gap: 0.35rem;
+    }
+    .cmds code {
+      display: block;
+      background: var(--ink);
+      color: var(--paper);
+      padding: 0.45rem 0.65rem;
+    }
+    footer {
+      margin-top: 1.6rem;
+      font-size: 0.88rem;
+      color: var(--mute);
+    }
+    @media (max-width: 760px) {
+      .house, .row, .corredor, .corredor ol, .key {
+        grid-template-columns: 1fr;
+      }
+      .clock-stamp {
+        right: 0.55rem;
+        width: 104px;
+        height: 104px;
+      }
+      .clock-stamp strong { font-size: 1.35rem; }
+      .corredor { padding-right: 7.4rem; }
+      .rua, .mesa { border-right: 0; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .clock-stamp { transform: translateY(-50%); }
+    }
+  </style>
+</head>
+<body>
+  <main class="sheet">
+    <header class="passbook">
+      <div>
+        <p class="eyebrow">Caderneta da casa · não vai senha aqui</p>
+        <h1>Como o Securo fica em pé neste PC</h1>
+        <p class="lede">O app mora no Docker local. O código seu mora no fork. O dinheiro dos dados mora no Proton. A comunidade só entra no horário do carimbo.</p>
+      </div>
+    </header>
+
+    <section class="house" aria-label="Mapa das quatro salas">
+      <article class="room rua">
+        <h2>Rua</h2>
+        <div class="where">comunidade · upstream/main</div>
+        <p>Projeto oficial: <code>securo-finance/securo</code>.</p>
+        <p>Eles soltam o <code>main</code>. A gente puxa isso; não mandamos o nosso código para eles.</p>
+      </article>
+      <article class="room oficina">
+        <h2>Oficina</h2>
+        <div class="where">seu fork · origin/lucas</div>
+        <p>GitHub <code>Soutto/securo</code>, branch <code>lucas</code>.</p>
+        <p>Aqui ficam os patches (logs, compose local, este mapa). Fork é público: nunca .env, nunca senha GPG.</p>
+      </article>
+      <div class="corredor">
+        <div class="clock-stamp" aria-hidden="true">
+          <div>
+            <span>todo dia</span>
+            <strong>12:30</strong>
+            <span>backup + update</span>
+          </div>
+        </div>
+        <div class="when">Corredor<br />das 12:30</div>
+        <ol>
+          <li>Backup GPG e sobe no Proton Drive</li>
+          <li>Rebase de <code>upstream/main</code> em <code>lucas</code></li>
+          <li>Build Docker (prod + lucas) e sobe o app</li>
+          <li>Push no fork, se o GitHub estiver logado</li>
+        </ol>
+      </div>
+      <article class="room mesa">
+        <h2>Mesa</h2>
+        <div class="where">este computador · localhost</div>
+        <p>Abra <code>http://localhost:3000</code>. Portas só em 127.0.0.1.</p>
+        <ul>
+          <li>Pasta: <code>~/Projects/securo</code></li>
+          <li>Compose: <code>docker-compose.prod.yml</code> + <code>docker-compose.lucas.yml</code></li>
+          <li>Dados: volumes <code>securo_pgdata</code>, anexos, knowledge — nunca sincronizar ao vivo</li>
+          <li>Timer systemd do usuário: se o PC estiver desligado, roda no próximo login</li>
+        </ul>
+      </article>
+      <article class="room cofre">
+        <h2>Cofre</h2>
+        <div class="where">Proton · Pass + Drive</div>
+        <p>Backup: <code>proton:Backup/securo</code> (arquivo <code>.tar.gz.gpg</code>).</p>
+        <p>No Proton Pass: senha do app, senha da conta Proton, senha GPG do backup.</p>
+        <p>O PDF de recuperação da conta Proton precisa existir <em>fora</em> do Proton (papel). Sem ele, Pass e Drive caem juntos.</p>
+      </article>
+    </section>
+
+    <section class="never">
+      <h2>Nunca</h2>
+      <ul>
+        <li>Rodar o <code>git pull && docker compose up</code> que o diálogo “Atualização do servidor” sugere — ele só checa release; o update de verdade é <code>securo-update</code>.</li>
+        <li>Mandar <code>.env</code> ou a senha GPG para o GitHub.</li>
+        <li>Conectar banco direto no widget da Pluggy. Uso pessoal: <strong>MeuPluggy</strong>.</li>
+        <li>Sincronizar a pasta dos volumes Docker com o Drive.</li>
+      </ul>
+    </section>
+
+    <div class="row">
+      <section class="panel">
+        <h2>Cadeia de chaves</h2>
+        <div class="keys">
+          <div class="key"><b>App Securo</b><span>Login em localhost. Senha no Proton Pass.</span></div>
+          <div class="key"><b>GPG do backup</b><span>Arquivo local <code>~/.config/securo/backup-passphrase</code>. Cópia no Proton Pass.</span></div>
+          <div class="key"><b>Conta Proton</b><span>Abre Pass e Drive. Senha + 2FA no Proton Pass.</span></div>
+          <div class="key"><b>PDF Proton</b><span>Última chave se a conta travar. Impresso; não deixar só dentro do Proton.</span></div>
+          <div class="key"><b>GitHub Soutto</b><span>Push da branch <code>lucas</code>. <code>gh auth login</code> se o timer não conseguir enviar.</span></div>
+        </div>
+      </section>
+      <section class="panel">
+        <h2>Se o rebase brigar</h2>
+        <p>O script aborta o rebase, deixa o app na versão que já estava, e grava falha no menu <strong>Log de backup e update</strong> (últimos 5).</p>
+        <p>Se houver arquivo sem commit, o update das 12:30 também pula — por isso a branch precisa estar limpa.</p>
+        <p>rclone do Zorin (1.60) não fala com Proton. O certo é o binário em <code>~/.local/bin/rclone</code>.</p>
+        <div class="cmds">
+          <code>securo-backup</code>
+          <code>securo-update</code>
+          <code>securo-restore --from-drive</code>
+          <code>securo-proton-login</code>
+        </div>
+      </section>
+    </div>
+
+    <footer>
+      PC novo: cole o conteúdo de <code>SETUP-MAQUINA.txt</code> no Cursor e faça os logins quando o agente pedir.
+      Bancos: MeuPluggy, não Itaú/Nubank direto. Keep local 3 arquivos; Proton apaga <code>.gpg</code> com mais de 14 dias.
+    </footer>
+  </main>
+</body>
+</html>

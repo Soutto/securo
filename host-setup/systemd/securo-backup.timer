@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily Securo backup and update from community main
+
+[Timer]
+OnCalendar=*-*-* 12:30:00
+Persistent=true
+RandomizedDelaySec=5m
+
+[Install]
+WantedBy=timers.target

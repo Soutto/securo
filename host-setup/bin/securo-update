@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# Pull community updates onto branch lucas, rebuild containers, push the fork.
+# Usage: securo-update [--no-backup]
+set -euo pipefail
+export PATH="$HOME/.local/bin:/usr/bin:/bin:${PATH:-}"
+export GIT_TERMINAL_PROMPT=0
+
+SECURO_DIR="${SECURO_DIR:-$HOME/Projects/securo}"
+COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
+LOG_FILE="${LOG_FILE:-$HOME/.local/share/securo-backups/backup.log}"
+OPS_OK=0
+OPS_DETAIL=""
+cd "$SECURO_DIR"
+mkdir -p "$(dirname "$LOG_FILE")"
+exec > >(tee -a "$LOG_FILE") 2>&1
+
+COMPOSE=(docker compose -f "$COMPOSE_FILE")
+[[ -f docker-compose.lucas.yml ]] && COMPOSE+=(-f docker-compose.lucas.yml)
+
+finish() {
+  local rc=$?
+  if [[ $OPS_OK -eq 1 ]]; then
+    "$HOME/.local/bin/securo-ops-log" update success "${OPS_DETAIL:-Update aplicado}"
+  else
+    "$HOME/.local/bin/securo-ops-log" update failure "${OPS_DETAIL:-Update falhou (exit $rc)}"
+  fi
+}
+trap finish EXIT
+
+echo "===== update $(date -Iseconds) start ====="
+
+if [[ -n "$(git status --porcelain)" ]]; then
+  OPS_DETAIL="Há arquivos alterados sem commit. Pulando update."
+  echo "$OPS_DETAIL"
+  git status -sb
+  exit 1
+fi
+
+if [[ "${1:-}" != "--no-backup" ]]; then
+  echo "Backup antes de atualizar..."
+  "$HOME/.local/bin/securo-backup"
+fi
+
+echo "Buscando o main da comunidade..."
+git fetch upstream
+git checkout lucas
+
+if ! git rebase upstream/main; then
+  git rebase --abort
+  OPS_DETAIL="Conflito no rebase. App continua na versão anterior."
+  echo "$OPS_DETAIL Avisa no chat para resolver."
+  exit 1
+fi
+
+echo "Atualizando containers..."
+"${COMPOSE[@]}" build
+"${COMPOSE[@]}" up -d
+
+echo "Enviando branch lucas para o seu fork..."
+if ! git push --force-with-lease origin lucas; then
+  echo "Push do fork falhou (comum no timer sem login). Update local ok."
+  OPS_DETAIL="Update local ok; push do fork falhou"
+else
+  OPS_DETAIL="Update aplicado a partir do main da comunidade"
+fi
+
+echo "===== update $(date -Iseconds) ok ====="
+echo "Pronto. App em http://localhost:3000"
+OPS_OK=1
