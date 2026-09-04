@@ -557,6 +557,19 @@ export interface ImportLog {
   created_at: string
 }
 
+export interface OpsLog {
+  id: string
+  kind: 'backup' | 'update'
+  success: boolean
+  message: string | null
+  created_at: string
+}
+
+export interface OpsLogList {
+  items: OpsLog[]
+  has_failure: boolean
+}
+
 export interface ImportPreviewTransaction {
   description: string
   amount: number

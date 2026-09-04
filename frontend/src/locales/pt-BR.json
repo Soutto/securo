@@ -2239,5 +2239,17 @@
         "openai": "OpenAI Responses API"
       }
     }
+  },
+  "opsLogs": {
+    "title": "Backup e atualizações",
+    "subtitle": "últimas 5 execuções",
+    "menuItem": "Log de backup e update",
+    "menuWarning": "Falhou",
+    "failureBanner": "Uma das últimas 5 execuções de backup ou update falhou. Abra o log para investigar.",
+    "okBanner": "As últimas 5 execuções de backup e update concluíram com sucesso.",
+    "loading": "Carregando log…",
+    "empty": "Nenhum backup ou update registrado ainda.",
+    "kindBackup": "Backup",
+    "kindUpdate": "Atualização"
   }
 }

@@ -20,6 +20,7 @@ from app.api.oidc_auth import router as oidc_auth_router
 from app.api.passkeys import router as passkeys_router
 from app.api.import_transactions import router as import_router
 from app.api.info import router as info_router
+from app.api.ops_logs import router as ops_logs_router
 from app.api.recurring_transactions import router as recurring_router
 from app.api.rules import router as rules_router
 from app.api.assets import router as assets_router
@@ -195,6 +196,7 @@ app.include_router(settings_router)
 app.include_router(workspaces_router)
 app.include_router(admin_router)
 app.include_router(info_router)
+app.include_router(ops_logs_router)
 
 
 # Optional agents/MCP/LLM module — fully gated by AGENTS_ENABLED so users

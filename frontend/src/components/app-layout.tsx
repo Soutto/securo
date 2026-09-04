@@ -32,6 +32,7 @@ import { APP_VERSION } from '@/lib/build-info'
 import { ShellLogo } from '@/components/shell-logo'
 import { UpdateAvailableBanner } from '@/components/update-available-banner'
 import { UpdateAvailableDialog } from '@/components/update-available-dialog'
+import { OpsLogsDialog } from '@/components/ops-logs-dialog'
 import { WorkspaceSwitcher } from '@/components/workspace-switcher'
 import { navItems, visibleNavItems, type NavItem } from '@/lib/nav-items'
 import {
@@ -48,6 +49,11 @@ import {
   Shield,
   ShieldCheck,
   Fingerprint,
+  Bot,
+  Search,
+  Sparkles,
+  AlertTriangle,
+  ScrollText,
 } from 'lucide-react'
 import { usePrivacyMode } from '@/hooks/use-privacy-mode'
 import { ChangePasswordDialog } from '@/components/change-password-dialog'
@@ -58,9 +64,9 @@ import { CommandPalette } from '@/components/command-palette'
 import { useCommandPaletteHotkey } from '@/hooks/use-command-palette-hotkey'
 import { GlobalChatPanel } from '@/components/global-chat-panel'
 import { useFeatureFlags } from '@/hooks/use-feature-flags'
-import { Bot, Search, Sparkles } from 'lucide-react'
 import { setThemeBasedOnSystem } from '@/lib/theme-utils'
 import { useLocalAuthEnabled } from '@/hooks/use-local-auth'
+import { useOpsLogs } from '@/hooks/use-ops-logs'
 import { formatCurrency } from '@/lib/format'
 
 /** Placeholder rows shown while the workspace's module list is in flight. */
@@ -103,6 +109,7 @@ export function AppLayout() {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [chatOpen, setChatOpen] = useState(false)
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false)
+  const [opsLogsOpen, setOpsLogsOpen] = useState(false)
   useCommandPaletteHotkey(setPaletteOpen)
   const { agentsEnabled } = useFeatureFlags()
   const { hasModule, isLoading: workspaceLoading, canWrite } = useWorkspace()
@@ -266,6 +273,7 @@ export function AppLayout() {
             onBackup={() => setBackupOpen(true)}
             dark
             isAdmin={user?.is_superuser}
+            onOpsLogs={() => setOpsLogsOpen(true)}
           />
         </div>
       </header>
@@ -497,8 +505,9 @@ export function AppLayout() {
               onTwoFactor={() => setTwoFactorOpen(true)}
               onPasskeys={() => setPasskeysOpen(true)}
               localAuthEnabled={localAuthEnabled}
-              onBackup={() => setBackupOpen(true)}
-              onUpdateAvailable={() => setUpdateDialogOpen(true)}
+            onBackup={() => setBackupOpen(true)}
+            onUpdateAvailable={() => setUpdateDialogOpen(true)}
+            onOpsLogs={() => setOpsLogsOpen(true)}
               agentsEnabled={agentsEnabled}
             />
           </div>
@@ -554,6 +563,7 @@ export function AppLayout() {
         open={updateDialogOpen}
         onClose={() => setUpdateDialogOpen(false)}
       />
+      <OpsLogsDialog open={opsLogsOpen} onClose={() => setOpsLogsOpen(false)} />
     </div>
   )
 }
@@ -569,6 +579,7 @@ function UserMenu({
   dark,
   isAdmin,
   agentsEnabled,
+  onOpsLogs,
 }: {
   userInitial: string
   logout: () => void
@@ -580,10 +591,13 @@ function UserMenu({
   dark?: boolean
   isAdmin?: boolean
   agentsEnabled?: boolean
+  onOpsLogs: () => void
 }) {
   const { t, i18n } = useTranslation()
   const nav = useNavigate()
   const currentLang = resolveSupportedLang(i18n.resolvedLanguage ?? i18n.language)
+  const { data: opsLogs } = useOpsLogs()
+  const hasOpsFailure = opsLogs?.has_failure ?? false
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -599,6 +613,9 @@ function UserMenu({
               {userInitial}
             </AvatarFallback>
           </Avatar>
+          {hasOpsFailure && (
+            <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-background" />
+          )}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
@@ -645,6 +662,21 @@ function UserMenu({
         >
           <HardDriveDownload size={14} />
           {t('backup.button')}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={onOpsLogs}
+          className={cn(
+            'flex items-center gap-2',
+            hasOpsFailure && 'text-rose-600 focus:text-rose-600',
+          )}
+        >
+          {hasOpsFailure ? <AlertTriangle size={14} /> : <ScrollText size={14} />}
+          <span className="flex-1">{t('opsLogs.menuItem')}</span>
+          {hasOpsFailure && (
+            <span className="text-[10px] font-semibold uppercase tracking-wide">
+              {t('opsLogs.menuWarning')}
+            </span>
+          )}
         </DropdownMenuItem>
         {agentsEnabled && (
           <DropdownMenuItem

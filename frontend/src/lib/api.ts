@@ -77,6 +77,7 @@ import type {
   InstallmentSeriesInput,
   TransactionApplyScope,
   InvoiceAttachment,
+  OpsLogList,
 } from '@/types'
 
 const api = axios.create({
@@ -1873,6 +1874,13 @@ export const invoices = {
     remove: async (invoiceId: string, attachmentId: string): Promise<void> => {
       await api.delete(`/invoices/${invoiceId}/attachments/${attachmentId}`)
     },
+  },
+}
+
+export const opsLogs = {
+  list: async (): Promise<OpsLogList> => {
+    const { data } = await api.get('/ops-logs', { params: { limit: 5 } })
+    return data
   },
 }
 

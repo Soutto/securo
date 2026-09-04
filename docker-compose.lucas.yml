@@ -1,0 +1,22 @@
+# Local overlay: build images from this checkout so branch `lucas`
+# customizations actually run (prod compose otherwise pulls GHCR).
+name: securo
+
+x-backend-build: &backend-build
+  image: securo-backend:lucas
+  build:
+    context: ./backend
+    dockerfile: Dockerfile
+
+services:
+  backend:
+    <<: *backend-build
+  celery-worker:
+    <<: *backend-build
+  celery-beat:
+    <<: *backend-build
+  frontend:
+    image: securo-frontend:lucas
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile

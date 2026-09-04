@@ -44,6 +44,8 @@ import {
   ShieldCheck,
   Sparkles,
   Fingerprint,
+  AlertTriangle,
+  ScrollText,
 } from 'lucide-react'
 import { CategoryIcon } from '@/components/category-icon'
 import {
@@ -51,6 +53,8 @@ import {
   WORKSPACE_KIND_ICON,
   WORKSPACE_KIND_LABEL_KEY,
 } from '@/lib/workspace-kinds'
+import { useOpsLogs } from '@/hooks/use-ops-logs'
+import { cn } from '@/lib/utils'
 import type { Workspace, WorkspaceKind } from '@/types'
 
 const ROLE_LABEL_KEY: Record<string, string> = {
@@ -81,6 +85,8 @@ interface AccountMenuProps {
   onBackup: () => void
   /** Open the "Update available" dialog. */
   onUpdateAvailable: () => void
+  /** Open the backup/update ops log dialog. */
+  onOpsLogs: () => void
   /** True when the AGENTS_ENABLED env flag is on. */
   agentsEnabled: boolean
   /** True when local password/passkey auth is enabled. */
@@ -102,6 +108,7 @@ export function WorkspaceSwitcher({
   onPasskeys,
   onBackup,
   onUpdateAvailable,
+  onOpsLogs,
   agentsEnabled,
   localAuthEnabled,
 }: AccountMenuProps) {
@@ -109,6 +116,8 @@ export function WorkspaceSwitcher({
   const navigate = useNavigate()
   const { current, workspaces, switchWorkspace, refresh } = useWorkspace()
   const { user, logout } = useAuth()
+  const { data: opsLogs } = useOpsLogs()
+  const hasOpsFailure = opsLogs?.has_failure ?? false
   const [createOpen, setCreateOpen] = useState(false)
   const [newName, setNewName] = useState('')
   const [newKind, setNewKind] = useState<WorkspaceKind>('personal')
@@ -167,6 +176,13 @@ export function WorkspaceSwitcher({
                 )}
               </p>
             </div>
+            {hasOpsFailure && (
+              <AlertTriangle
+                size={13}
+                className="text-rose-500 shrink-0"
+                aria-label={t('opsLogs.menuWarning')}
+              />
+            )}
             <ChevronsUpDown size={13} className="text-sidebar-muted/60 shrink-0" />
           </button>
         </DropdownMenuTrigger>
@@ -282,6 +298,21 @@ export function WorkspaceSwitcher({
           >
             <Download size={14} />
             {t('update.menuItem')}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={onOpsLogs}
+            className={cn(
+              'flex items-center gap-2',
+              hasOpsFailure && 'text-rose-600 focus:text-rose-600',
+            )}
+          >
+            {hasOpsFailure ? <AlertTriangle size={14} /> : <ScrollText size={14} />}
+            <span className="flex-1">{t('opsLogs.menuItem')}</span>
+            {hasOpsFailure && (
+              <span className="text-[10px] font-semibold uppercase tracking-wide">
+                {t('opsLogs.menuWarning')}
+              </span>
+            )}
           </DropdownMenuItem>
 
           {/* Language sub-menu */}

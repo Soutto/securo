@@ -2238,5 +2238,17 @@
         "subtitle": "Προσθέστε μια σύνδεση για να κατευθύνετε το Securo στο τοπικό σας Ollama, OpenAI, Anthropic ή οποιοδήποτε συμβατό τελικό σημείο OpenAI."
       }
     }
+  },
+  "opsLogs": {
+    "title": "Backup & updates",
+    "subtitle": "last 5 runs",
+    "menuItem": "Backup & update log",
+    "menuWarning": "Failed",
+    "failureBanner": "One of the last 5 backup or update runs failed. Open the log to investigate.",
+    "okBanner": "The last 5 backup and update runs completed successfully.",
+    "loading": "Loading log…",
+    "empty": "No backup or update has been recorded yet.",
+    "kindBackup": "Backup",
+    "kindUpdate": "Update"
   }
 }
